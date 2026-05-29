@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FoodCtrl — Gestão de Restaurante</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app" id="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">🔥 FoodCtrl</div>
+      <div class="logo-sub">Gestão de restaurante</div>
+    </div>
+    <nav class="nav">
+      <div class="nav-sec">Visão Geral</div>
+      <div class="nav-item" id="nav-dashboard" onclick="showScreen('dashboard')">
+        <i class="ti ti-layout-dashboard"></i> Dashboard
+      </div>
+      <div class="nav-sec">Cadastros</div>
+      <div class="nav-item" id="nav-ingredientes" onclick="showScreen('ingredientes')">
+        <i class="ti ti-database"></i> Base de Ingredientes
+      </div>
+      <div class="nav-item" id="nav-fichas" onclick="showScreen('fichas')">
+        <i class="ti ti-chef-hat"></i> Fichas Técnicas
+      </div>
+      <div class="nav-sec">Operação</div>
+      <div class="nav-item" id="nav-estoque" onclick="showScreen('estoque')">
+        <i class="ti ti-box"></i> Estoque
+        <span class="nav-badge warn" id="nav-badge-estoque">3</span>
+      </div>
+      <div class="nav-item" id="nav-compras" onclick="showScreen('compras')">
+        <i class="ti ti-shopping-cart"></i> Compras
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-pill">
+        <div class="avatar">MG</div>
+        <div>
+          <div class="user-name">Maria Gerente</div>
+          <div class="user-role">Administrador</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title" id="page-title">Dashboard</div>
+      <div class="topbar-right">
+        <button class="btn btn-ghost" id="topbar-secondary"></button>
+        <button class="btn btn-primary" id="topbar-primary" style="display:none"></button>
+        <div class="notif"><i class="ti ti-bell"></i><div class="notif-dot"></div></div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ═══════════ DASHBOARD ═══════════ -->
+      <div class="screen" id="screen-dashboard">
+        <div class="stats-grid stats-4">
+          <div class="scard">
+            <div class="scard-label">Fichas cadastradas</div>
+            <div class="scard-val" id="d-fichas" style="color:var(--text)">0</div>
+            <div class="scard-sub">Base de ingredientes ativa</div>
+          </div>
+          <div class="scard">
+            <div class="scard-label">Ingredientes</div>
+            <div class="scard-val" id="d-ings" style="color:var(--blue)">0</div>
+            <div class="scard-sub">na base de dados</div>
+          </div>
+          <div class="scard">
+            <div class="scard-label">Itens abaixo do mínimo</div>
+            <div class="scard-val" style="color:var(--red)">3</div>
+            <div class="scard-sub">Estoque crítico</div>
+          </div>
+          <div class="scard">
+            <div class="scard-label">Melhor margem</div>
+            <div class="scard-val" id="d-margem" style="color:var(--green)">—</div>
+            <div class="scard-sub">entre as fichas ativas</div>
+          </div>
+        </div>
+        <div class="dash-grid">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Fichas por categoria</div>
+              <button class="card-link" onclick="showScreen('fichas')">Ver todas →</button>
+            </div>
+            <div id="d-cat-list"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Ingredientes com maior FC</div>
+              <button class="card-link" onclick="showScreen('ingredientes')">Ver base →</button>
+            </div>
+            <div id="d-fc-list"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Fichas técnicas — ranking de margem</div>
+          </div>
+          <div id="d-fichas-list"></div>
+        </div>
+      </div>
+
+      <!-- ═══════════ INGREDIENTES ═══════════ -->
+      <div class="screen" id="screen-ingredientes">
+        <div class="stats-grid stats-5">
+          <div class="scard"><div class="scard-label">Total</div><div class="scard-val" id="si-total" style="color:var(--text)">0</div></div>
+          <div class="scard"><div class="scard-label">Hortifruit</div><div class="scard-val" id="si-hort" style="color:var(--green)">0</div></div>
+          <div class="scard"><div class="scard-label">Proteínas</div><div class="scard-val" id="si-prot" style="color:var(--red)">0</div></div>
+          <div class="scard"><div class="scard-label">Secos / Grãos</div><div class="scard-val" id="si-secos" style="color:var(--yellow)">0</div></div>
+          <div class="scard"><div class="scard-label">Com FC &gt; 1</div><div class="scard-val" id="si-fc" style="color:var(--accent)">0</div></div>
+        </div>
+        <div class="toolbar">
+          <div class="search-box">
+            <i class="ti ti-search" style="color:var(--text3);font-size:14px"></i>
+            <input type="text" id="ing-q" placeholder="Buscar ingrediente..." oninput="applyIngFilter()">
+          </div>
+          <div id="ing-cat-tabs" style="display:flex;gap:4px;flex-wrap:wrap"></div>
+          <button class="btn btn-ghost btn-sm" onclick="openIngCatModal()" title="Nova categoria de ingrediente" style="white-space:nowrap">
+            <i class="ti ti-tag"></i> Nova categoria
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:25%" onclick="ingSort('nome')">Ingrediente <i class="ti ti-selector" style="font-size:10px"></i></th>
+                <th style="width:13%">Categoria</th>
+                <th class="r" style="width:9%" onclick="ingSort('preco')">Preço <i class="ti ti-selector" style="font-size:10px"></i></th>
+                <th class="r" style="width:7%">Unid.</th>
+                <th class="r" style="width:9%" onclick="ingSort('fc')">FC <i class="ti ti-selector" style="font-size:10px"></i></th>
+                <th class="r" style="width:8%">Perda</th>
+                <th class="r" style="width:12%">Custo/100g</th>
+                <th class="c" style="width:10%">Usado em</th>
+                <th class="c" style="width:7%">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="ing-tbody"></tbody>
+          </table>
+          <div class="pagination">
+            <div class="page-info" id="ing-page-info"></div>
+            <div class="page-btns" id="ing-page-btns"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ FICHAS TÉCNICAS ═══════════ -->
+      <div class="screen" id="screen-fichas">
+        <div class="stats-grid stats-4">
+          <div class="scard"><div class="scard-label">Total fichas</div><div class="scard-val" id="sf-total" style="color:var(--text)">0</div></div>
+          <div class="scard"><div class="scard-label">Melhor margem</div><div class="scard-val" id="sf-melhor" style="color:var(--green)">—</div></div>
+          <div class="scard"><div class="scard-label">Atenção &lt;55%</div><div class="scard-val" id="sf-atencao" style="color:var(--yellow)">0</div></div>
+          <div class="scard"><div class="scard-label">Categorias</div><div class="scard-val" id="sf-cats" style="color:var(--purple)">0</div></div>
+        </div>
+        <div class="cat-tabs" id="ficha-cat-tabs"></div>
+        <div class="toolbar">
+          <div class="search-box">
+            <i class="ti ti-search" style="color:var(--text3);font-size:14px"></i>
+            <input type="text" id="ficha-q" placeholder="Buscar ficha técnica..." oninput="renderFichas()">
+          </div>
+        </div>
+        <div class="fichas-grid" id="fichas-grid"></div>
+      </div>
+
+      <!-- ═══════════ ESTOQUE ═══════════ -->
+      <div class="screen" id="screen-estoque">
+        <div class="stats-grid stats-4" style="margin-bottom:16px">
+          <div class="scard"><div class="scard-label">Total de itens</div><div class="scard-val" id="est-total" style="color:var(--text)">0</div></div>
+          <div class="scard"><div class="scard-label">Crítico (abaixo mín.)</div><div class="scard-val" id="est-critico" style="color:var(--red)">0</div></div>
+          <div class="scard"><div class="scard-label">Baixo (até 1,5× mín.)</div><div class="scard-val" id="est-baixo" style="color:var(--yellow)">0</div></div>
+          <div class="scard"><div class="scard-label">Valor em estoque</div><div class="scard-val" id="est-valor" style="color:var(--green)">R$ 0</div></div>
+        </div>
+        <div id="est-alert-banner" style="display:none" class="alert-banner">
+          <i class="ti ti-alert-circle" style="color:var(--red);font-size:18px"></i>
+          <span id="est-alert-text"></span>
+          <button class="btn btn-sm btn-ghost" style="margin-left:auto" onclick="showScreen('compras')">Gerar lista de compras →</button>
+        </div>
+        <div class="toolbar">
+          <div class="search-box">
+            <i class="ti ti-search" style="color:var(--text3);font-size:14px"></i>
+            <input type="text" id="est-q" placeholder="Buscar ingrediente no estoque..." oninput="renderEstoque()">
+          </div>
+          <button class="ftab active" id="est-filter-todos" onclick="setEstFilter('todos')">Todos</button>
+          <button class="ftab" id="est-filter-critico" onclick="setEstFilter('critico')">Crítico</button>
+          <button class="ftab" id="est-filter-baixo" onclick="setEstFilter('baixo')">Baixo</button>
+          <button class="ftab" id="est-filter-ok" onclick="setEstFilter('ok')">OK</button>
+        </div>
+        <div class="table-wrap" style="overflow-x:auto">
+          <table style="table-layout:auto;min-width:700px">
+            <thead><tr>
+              <th style="width:19%;cursor:pointer" onclick="sortEstoque('nome')">Ingrediente <i class="ti ti-selector" style="font-size:10px"></i></th>
+              <th style="width:10%;cursor:pointer" onclick="sortEstoque('categoria')">Categoria <i class="ti ti-selector" style="font-size:10px"></i></th>
+              <th class="r" style="width:8%;cursor:pointer" onclick="sortEstoque('qtd')">Saldo <i class="ti ti-selector" style="font-size:10px"></i></th>
+              <th style="width:5%">Un.</th>
+              <th class="r" style="width:8%">Mínimo</th>
+              <th class="r" style="width:8%">Máximo</th>
+              <th style="width:10%">Nível</th>
+              <th class="r" style="width:9%;cursor:pointer" onclick="sortEstoque('valor')">Valor <i class="ti ti-selector" style="font-size:10px"></i></th>
+              <th style="width:7%;cursor:pointer" onclick="sortEstoque('status')">Status <i class="ti ti-selector" style="font-size:10px"></i></th>
+              <th class="c" style="width:16%">Ações</th>
+            </tr></thead>
+            <tbody id="estoque-tbody"></tbody>
+          </table>
+        </div>
+        <!-- HISTÓRICO -->
+        <div style="margin-top:20px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-family:var(--font-display);font-size:14px;font-weight:600">Histórico de movimentações</div>
+            <span style="font-size:12px;color:var(--text3)" id="hist-count"></span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th style="width:14%">Data / Hora</th>
+                <th style="width:22%">Ingrediente</th>
+                <th style="width:10%">Tipo</th>
+                <th class="r" style="width:10%">Quantidade</th>
+                <th style="width:7%">Un.</th>
+                <th class="r" style="width:10%">Custo unit.</th>
+                <th class="r" style="width:10%">Total</th>
+                <th style="width:17%">Observação</th>
+              </tr></thead>
+              <tbody id="hist-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ COMPRAS ═══════════ -->
+      <div class="screen" id="screen-compras">
+        <div class="stats-grid stats-4" style="margin-bottom:16px">
+          <div class="scard"><div class="scard-label">Total estimado</div><div class="scard-val" id="compra-total" style="color:var(--accent)">R$ 0,00</div></div>
+          <div class="scard"><div class="scard-label">Itens pendentes</div><div class="scard-val" id="compra-pend" style="color:var(--yellow)">0</div></div>
+          <div class="scard"><div class="scard-label">Comprados</div><div class="scard-val" id="compra-done" style="color:var(--green)">0</div></div>
+          <div class="scard"><div class="scard-label">Valor já gasto</div><div class="scard-val" id="compra-gasto" style="color:var(--blue)">R$ 0,00</div></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th style="width:5%"></th>
+              <th style="width:22%">Ingrediente</th>
+              <th style="width:13%">Fornecedor</th>
+              <th class="r" style="width:11%">Qtd sugerida</th>
+              <th class="r" style="width:10%">Preço unit.</th>
+              <th class="r" style="width:11%">Total estimado</th>
+              <th style="width:9%">Status</th>
+              <th class="c" style="width:9%">Dar entrada</th>
+            </tr></thead>
+            <tbody id="compras-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ══════════ MODAL: INGREDIENTE ══════════ -->
+<div class="overlay" id="ing-overlay" style="display:none" onclick="overlayClose(event,'ing-overlay')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="ing-modal-title">Novo ingrediente</div>
+      <button class="close-btn" onclick="closeModal('ing-overlay')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid form-1"><div>
+        <label class="field-label">Nome do ingrediente</label>
+        <input class="field-input" id="if-nome" type="text" placeholder="Ex: Peito de Frango">
+      </div></div>
+      <div class="form-grid form-2">
+        <div>
+          <label class="field-label">Categoria</label>
+          <select class="field-input" id="if-cat">
+            <option>Hortfruit</option><option>Proteína</option><option>Secos</option>
+            <option>Grãos</option><option>Laticineos</option><option>Descartáveis</option><option>Porções</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Unidade de medida</label>
+          <select class="field-input" id="if-un">
+            <option>kg</option><option>Kg</option><option>Und</option><option>Litro</option>
+            <option>g</option><option>ml</option><option>Sachê</option><option>Rodela</option>
+            <option>bdj</option><option>folha</option><option>Porção</option><option>Pacote</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid form-2">
+        <div>
+          <label class="field-label">Preço (R$)</label>
+          <input class="field-input" id="if-preco" type="number" min="0" step="0.01" placeholder="0,00" oninput="updateIngPreview()">
+        </div>
+        <div>
+          <label class="field-label">Fator de Correção (FC)</label>
+          <input class="field-input" id="if-fc" type="number" min="1" max="3" step="0.01" value="1.00" oninput="updateIngPreview()">
+        </div>
+      </div>
+      <div class="fc-info" id="if-preview">Preencha o preço e o FC para ver o custo real calculado.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('ing-overlay')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveIng()"><i class="ti ti-device-floppy"></i> Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: FICHA ══════════ -->
+<div class="overlay" id="ficha-overlay" style="display:none" onclick="overlayClose(event,'ficha-overlay')">
+  <div class="modal modal-lg" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="ficha-modal-title">Nova ficha técnica</div>
+      <button class="close-btn" onclick="closeModal('ficha-overlay')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid form-2">
+        <div>
+          <label class="field-label">Nome da preparação</label>
+          <input class="field-input" id="ff-nome" type="text" placeholder="Ex: Bowl Frango Grelhado">
+        </div>
+        <div>
+          <label class="field-label">Categoria</label>
+          <div style="display:flex;gap:6px">
+            <select class="field-input" id="ff-cat" style="flex:1"></select>
+            <button class="btn btn-ghost btn-sm" onclick="openCatModal()" title="Nova categoria" style="padding:7px 9px"><i class="ti ti-plus"></i></button>
+          </div>
+        </div>
+      </div>
+      <div class="form-grid form-3">
+        <div>
+          <label class="field-label">Rendimento (porções)</label>
+          <input class="field-input" id="ff-rend" type="number" value="1" min="1" oninput="recalcFicha()">
+        </div>
+        <div>
+          <label class="field-label">Preço direto (R$)</label>
+          <input class="field-input" id="ff-venda" type="number" placeholder="0,00" step="0.01" oninput="recalcFicha()">
+        </div>
+        <div>
+          <label class="field-label">Status</label>
+          <select class="field-input" id="ff-status">
+            <option>Ativo</option><option>Inativo</option><option>Teste</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid form-3">
+        <div>
+          <label class="field-label">Preço iFood (R$)</label>
+          <input class="field-input" id="ff-venda-ifood" type="number" placeholder="0,00" step="0.01" oninput="recalcFicha()">
+        </div>
+        <div>
+          <label class="field-label">Taxa iFood (%)</label>
+          <input class="field-input" id="ff-taxa-ifood" type="number" placeholder="12" step="0.5" min="0" max="50" value="12" oninput="recalcFicha()">
+        </div>
+        <div style="display:flex;flex-direction:column;justify-content:flex-end">
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 11px;font-size:12px">
+            <div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Líquido iFood</div>
+            <div style="font-weight:700;font-size:15px;color:var(--teal)" id="ff-liquido-ifood">R$ —</div>
+          </div>
+        </div>
+      </div>
+      <div class="sdiv">Ingredientes — busca na base de dados</div>
+      <div class="ing-dd-wrap">
+        <input class="field-input" id="ff-ing-q" type="text" placeholder="Digite para buscar ingrediente da base..." oninput="filterFichaIngs()" autocomplete="off">
+        <div class="ing-dd" id="ff-ing-dd" style="display:none"></div>
+      </div>
+      <div id="ff-ing-empty" style="font-size:12px;color:var(--text3);text-align:center;padding:14px;background:var(--bg3);border-radius:8px;margin-bottom:8px">
+        <i class="ti ti-salad" style="font-size:18px;display:block;margin-bottom:4px;opacity:.4"></i>
+        Nenhum ingrediente adicionado ainda
+      </div>
+      <div style="overflow-x:auto"><table class="ing-tbl" id="ff-ing-tbl" style="display:none;min-width:580px">
+        <thead>
+          <tr>
+            <th style="width:25%">Ingrediente</th>
+            <th style="width:10%">Categ.</th>
+            <th class="r" style="width:10%">Qtd. líquida</th>
+            <th style="width:11%">Unidade</th>
+            <th class="r" style="width:7%">FC</th>
+            <th class="r" style="width:13%">Qtd. bruta</th>
+            <th class="r" style="width:13%">Custo c/ FC</th>
+            <th style="width:5%"></th>
+          </tr>
+        </thead>
+        <tbody id="ff-ing-rows"></tbody>
+      </table></div>
+      <div id="ff-rend-label-box" style="display:none;background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);border-radius:8px;padding:9px 13px;margin-bottom:8px;font-size:12.5px;color:var(--blue);text-align:center" id="ff-rend-label"></div>
+      <div class="summary-box" style="grid-template-columns:repeat(4,1fr)">
+        <div><div class="sb-label" id="sb-bruto-label">Custo total</div><div class="sb-val" id="sb-bruto" style="color:var(--text2)">R$ —</div></div>
+        <div><div class="sb-label" id="sb-liq-label">Custo / porção</div><div class="sb-val" id="sb-liq" style="color:var(--accent)">R$ —</div></div>
+        <div><div class="sb-label">CMV%</div><div class="sb-val" id="sb-cmv" style="color:var(--text3)">—</div></div>
+        <div><div class="sb-label">Margem%</div><div class="sb-val" id="sb-marg" style="color:var(--text3)">—</div></div>
+      </div>
+      <div class="summary-box" style="grid-template-columns:repeat(4,1fr);margin-top:8px;background:rgba(20,184,166,.05);border-color:rgba(20,184,166,.2)">
+        <div><div class="sb-label" style="color:var(--teal)">Venda direta</div><div class="sb-val" id="sb-venda" style="color:var(--green)">R$ —</div></div>
+        <div><div class="sb-label" style="color:var(--teal)">Venda iFood</div><div class="sb-val" id="sb-venda-ifood" style="color:var(--teal)">R$ —</div></div>
+        <div><div class="sb-label" style="color:var(--teal)">CMV iFood</div><div class="sb-val" id="sb-cmv-ifood" style="color:var(--text3)">—</div></div>
+        <div><div class="sb-label" style="color:var(--teal)">Margem iFood</div><div class="sb-val" id="sb-marg-ifood" style="color:var(--text3)">—</div></div>
+      </div>
+    </div>
+      <!-- MODO DE PREPARO -->
+      <div class="sdiv" style="margin-top:16px">
+        <i class="ti ti-notes" style="color:var(--accent);margin-right:5px"></i>
+        Modo de preparo
+      </div>
+      <textarea id="ff-preparo" rows="5"
+        placeholder="Descreva o passo a passo do preparo...&#10;Ex: 1. Tempere o frango com sal e limão&#10;2. Grelhe por 7 minutos cada lado&#10;3. Montagem: base de arroz, proteína, acompanhamentos"
+        style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;
+               color:var(--text);padding:10px 12px;font-size:13px;font-family:var(--font);
+               resize:vertical;outline:none;line-height:1.6;transition:border-color .15s"
+        onfocus="this.style.borderColor='var(--accent)'"
+        onblur="this.style.borderColor='var(--border)'"></textarea>
+
+      <!-- FOTOS DO PRATO -->
+      <div class="sdiv" style="margin-top:16px">
+        <i class="ti ti-camera" style="color:var(--accent);margin-right:5px"></i>
+        Fotos do prato
+      </div>
+      <div id="ff-fotos-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"></div>
+      <label style="display:flex;align-items:center;justify-content:center;gap:8px;
+             background:var(--bg3);border:1.5px dashed var(--border);border-radius:8px;
+             padding:14px;cursor:pointer;font-size:13px;color:var(--text3);transition:all .15s"
+             id="ff-foto-label"
+             onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'"
+             onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">
+        <i class="ti ti-upload" style="font-size:17px"></i>
+        Clique para anexar fotos (JPG, PNG, WEBP)
+        <input type="file" id="ff-foto-input" accept="image/*" multiple style="display:none"
+               onchange="addFotos(this)">
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('ficha-overlay')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveFicha()"><i class="ti ti-device-floppy"></i> Salvar ficha</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: NOVA CATEGORIA INGREDIENTE ══════════ -->
+<div class="overlay" id="ing-cat-overlay" style="display:none" onclick="overlayClose(event,'ing-cat-overlay')">
+  <div class="modal modal-sm" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">Nova categoria de ingrediente</div>
+      <button class="close-btn" onclick="closeModal('ing-cat-overlay')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid form-1" style="margin-bottom:10px"><div>
+        <label class="field-label">Nome da categoria</label>
+        <input class="field-input" id="ic-nome" type="text" placeholder="Ex: Bebidas, Temperos...">
+      </div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('ing-cat-overlay')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveIngCat()"><i class="ti ti-check"></i> Criar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: NOVA CATEGORIA ══════════ -->
+<div class="overlay" id="cat-overlay" style="display:none" onclick="overlayClose(event,'cat-overlay')">
+  <div class="modal modal-sm" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">Nova categoria de ficha</div>
+      <button class="close-btn" onclick="closeModal('cat-overlay')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid form-1" style="margin-bottom:10px"><div>
+        <label class="field-label">Nome da categoria</label>
+        <input class="field-input" id="nc-nome" type="text" placeholder="Ex: Saladas, Sobremesas...">
+      </div></div>
+      <div class="form-grid form-1"><div>
+        <label class="field-label">Ícone (emoji)</label>
+        <input class="field-input" id="nc-icon" type="text" placeholder="🥗" maxlength="2" style="width:70px">
+      </div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('cat-overlay')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveNewCat()"><i class="ti ti-check"></i> Criar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ MODAL: ENTRADA ESTOQUE ══════════ -->
+<div class="overlay" id="entrada-overlay" style="display:none" onclick="overlayClose(event,'entrada-overlay')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="entrada-modal-title">Registrar entrada</div>
+      <button class="close-btn" onclick="closeModal('entrada-overlay')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 13px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+        <i class="ti ti-box" style="color:var(--accent);font-size:18px"></i>
+        <div>
+          <div style="font-weight:600;font-size:14px" id="entrada-ing-nome">—</div>
+          <div style="font-size:11.5px;color:var(--text3)" id="entrada-ing-info">—</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-size:11px;color:var(--text3)">Estoque atual</div>
+          <div style="font-size:17px;font-weight:700;font-family:var(--font-display)" id="entrada-qtd-atual">—</div>
+        </div>
+      </div>
+      <div class="form-grid form-2">
+        <div>
+          <label class="field-label">Quantidade recebida</label>
+          <input class="field-input" id="ent-qtd" type="number" min="0" step="0.1" placeholder="0" oninput="updateEntradaPreview()">
+        </div>
+        <div>
+          <label class="field-label">Custo unitário (R$)</label>
+          <input class="field-input" id="ent-custo" type="number" min="0" step="0.01" placeholder="0,00" oninput="updateEntradaPreview()">
+        </div>
+      </div>
+      <div class="form-grid form-2">
+        <div>
+          <label class="field-label">Data de entrada</label>
+          <input class="field-input" id="ent-data" type="date">
+        </div>
+        <div>
+          <label class="field-label">Fornecedor</label>
+          <input class="field-input" id="ent-forn" type="text" placeholder="Ex: Frios do Sul">
+        </div>
+      </div>
+      <div class="form-grid form-1">
+        <div>
+          <label class="field-label">Observação (opcional)</label>
+          <input class="field-input" id="ent-obs" type="text" placeholder="Ex: NF 1234, lote B...">
+        </div>
+      </div>
+      <div id="entrada-preview" style="display:none;background:rgba(249,115,22,.07);border:1px solid rgba(249,115,22,.2);border-radius:8px;padding:10px 13px;margin-top:4px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
+          <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Novo saldo</div><div style="font-size:16px;font-weight:700;font-family:var(--font-display);color:var(--green)" id="prev-saldo">—</div></div>
+          <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Total da entrada</div><div style="font-size:16px;font-weight:700;font-family:var(--font-display);color:var(--accent)" id="prev-total">—</div></div>
+          <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Custo médio</div><div style="font-size:16px;font-weight:700;font-family:var(--font-display);color:var(--blue)" id="prev-medio">—</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('entrada-overlay')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarEntrada()"><i class="ti ti-check"></i> Confirmar entrada</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════ MODAL: SAÍDA ESTOQUE ══════════ -->
+<div class="overlay" id="saida-overlay" style="display:none" onclick="overlayClose(event,'saida-overlay')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">Registrar saída manual</div>
+      <button class="close-btn" onclick="closeModal('saida-overlay')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div style="background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 13px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+        <i class="ti ti-arrow-bar-up" style="color:var(--red);font-size:18px"></i>
+        <div>
+          <div style="font-weight:600;font-size:14px" id="saida-ing-nome">—</div>
+          <div style="font-size:11.5px;color:var(--text3)" id="saida-ing-info">—</div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-size:11px;color:var(--text3)">Estoque atual</div>
+          <div style="font-size:17px;font-weight:700;font-family:var(--font-display);color:var(--green)" id="saida-qtd-atual">—</div>
+        </div>
+      </div>
+      <div class="form-grid form-2">
+        <div>
+          <label class="field-label">Quantidade retirada</label>
+          <input class="field-input" id="sai-qtd" type="number" min="0" step="0.1" placeholder="0" oninput="updateSaidaPreview()">
+        </div>
+        <div>
+          <label class="field-label">Motivo da saída</label>
+          <select class="field-input" id="sai-motivo">
+            <option value="Uso cozinha">Uso na cozinha</option>
+            <option value="Perda/Vencimento">Perda / Vencimento</option>
+            <option value="Ajuste inventário">Ajuste de inventário</option>
+            <option value="Transferência">Transferência</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-grid form-2">
+        <div>
+          <label class="field-label">Data</label>
+          <input class="field-input" id="sai-data" type="date">
+        </div>
+        <div>
+          <label class="field-label">Observação (opcional)</label>
+          <input class="field-input" id="sai-obs" type="text" placeholder="Ex: produção do almoço">
+        </div>
+      </div>
+      <div id="saida-preview" style="display:none;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.18);border-radius:8px;padding:10px 13px;margin-top:4px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;text-align:center">
+          <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Saldo após saída</div><div style="font-size:16px;font-weight:700;font-family:var(--font-display)" id="prev-saida-saldo">—</div></div>
+          <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Valor retirado</div><div style="font-size:16px;font-weight:700;font-family:var(--font-display);color:var(--red)" id="prev-saida-valor">—</div></div>
+          <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Status após</div><div style="font-size:14px;font-weight:700" id="prev-saida-status">—</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('saida-overlay')">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarSaida()"><i class="ti ti-arrow-bar-up"></i> Confirmar saída</button>
+    </div>
+  </div>
+</div>
+<!-- ══════════ MODAL: DETALHE FICHA ══════════ -->
+<div class="overlay" id="detail-overlay" style="display:none" onclick="overlayClose(event,'detail-overlay')">
+  <div class="modal modal-lg" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="detail-title">Detalhes da ficha</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn btn-ghost btn-sm" id="detail-edit-btn"><i class="ti ti-edit"></i> Editar</button>
+        <button class="close-btn" onclick="closeModal('detail-overlay')"><i class="ti ti-x"></i></button>
+      </div>
+    </div>
+    <div class="modal-body" id="detail-body"></div>
+  </div>
+</div>
+
+  <script src="app.js"></script>
+</script>
+</body>
+</html>
