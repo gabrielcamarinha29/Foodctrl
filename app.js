@@ -1,3 +1,161 @@
+
+// ═══════════════════════════════════════════════
+//  SUPABASE — configuração e helpers
+// ═══════════════════════════════════════════════
+const SB_URL = 'https://eerxldkaobmekrhxrfpp.supabase.co/rest/v1';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVlcnhsZGthb2JtZWtyaHhyZnBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0ODgzMDUsImV4cCI6MjA5NjA2NDMwNX0.nKhdrFcXBLetllt7uBiDEqTh9aI-LvIKl6BuzVU8I0o';
+
+const SB_HEADERS = {
+  'apikey':        SB_KEY,
+  'Authorization': 'Bearer ' + SB_KEY,
+  'Content-Type':  'application/json',
+  'Prefer':        'return=representation',
+};
+
+// Estado da conexão
+let sbOnline = false;
+
+// Helper genérico — fetch com timeout de 5s
+async function sbFetch(path, opts={}){
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=>ctrl.abort(), 5000);
+  try {
+    const res = await fetch(SB_URL + path, {
+      ...opts,
+      headers: { ...SB_HEADERS, ...(opts.headers||{}) },
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    if(!res.ok){
+      const err = await res.text();
+      throw new Error(`Supabase ${res.status}: ${err}`);
+    }
+    const text = await res.text();
+    return text ? JSON.parse(text) : [];
+  } catch(e){
+    clearTimeout(timer);
+    throw e;
+  }
+}
+
+// Converte objeto interno (camelCase) → colunas do Supabase (snake_case)
+function toSB(ing){
+  return {
+    id:          ing.id,
+    nome:        ing.nome,
+    categoria:   ing.categoria,
+    un:          ing.un,
+    preco:       ing.preco        || 0,
+    fc:          ing.fc           || 1,
+    qtd:         ing.qtd          || 0,
+    min:         ing.min          || 0,
+    max:         ing.max          || 0,
+    custo_medio: ing.custoMedio   || 0,
+  };
+}
+
+// Converte linha do Supabase → objeto interno
+function fromSB(row){
+  return {
+    id:          row.id,
+    nome:        row.nome,
+    categoria:   row.categoria    || '',
+    un:          row.un           || 'kg',
+    preco:       parseFloat(row.preco)       || 0,
+    fc:          parseFloat(row.fc)          || 1,
+    qtd:         parseFloat(row.qtd)         || 0,
+    min:         parseFloat(row.min)         || 0,
+    max:         parseFloat(row.max)         || 0,
+    custoMedio:  parseFloat(row.custo_medio) || 0,
+  };
+}
+
+// Atualiza indicador de conexão na UI
+function setSbStatus(online){
+  sbOnline = online;
+  const el = document.getElementById('sb-status');
+  if(!el) return;
+  if(online){
+    el.innerHTML = '<i class="ti ti-cloud-check" style="color:var(--green)"></i> <span style="color:var(--text3)">Supabase</span>';
+    el.title = 'Conectado ao Supabase';
+  } else {
+    el.innerHTML = '<i class="ti ti-cloud-off" style="color:var(--yellow)"></i> <span style="color:var(--text3)">Local</span>';
+    el.title = 'Offline — usando localStorage';
+  }
+}
+
+// ── CRUD de ingredientes ──────────────────────
+
+// Carrega todos os ingredientes do Supabase
+async function sbLoadIngredientes(){
+  try {
+    const rows = await sbFetch('/ingredientes?select=*&order=id.asc');
+    if(rows && rows.length > 0){
+      DB.length = 0;
+      rows.forEach(r => DB.push(fromSB(r)));
+      nextIngId = Math.max(...DB.map(d=>d.id)) + 1;
+      setSbStatus(true);
+      // Sincroniza localStorage como cache
+      localStorage.setItem('fc_db', JSON.stringify(DB));
+      localStorage.setItem('fc_nextIngId', nextIngId);
+      return true;
+    }
+    // Tabela vazia — faz upload dos dados locais como seed
+    if(DB.length > 0){
+      await sbSeedIngredientes();
+      setSbStatus(true);
+      return true;
+    }
+    setSbStatus(true);
+    return false;
+  } catch(e){
+    console.warn('sbLoadIngredientes falhou, usando localStorage:', e);
+    setSbStatus(false);
+    return false;
+  }
+}
+
+// Seed inicial — envia os 100 ingredientes padrão para o Supabase
+async function sbSeedIngredientes(){
+  try {
+    // Supabase aceita upsert em lote
+    await sbFetch('/ingredientes', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify(DB.map(toSB)),
+    });
+    showToast('✅ '+ DB.length +' ingredientes enviados ao Supabase','ok');
+  } catch(e){
+    console.warn('Seed falhou:', e);
+  }
+}
+
+// Inserir ou atualizar um ingrediente
+async function sbUpsertIngrediente(ing){
+  if(!sbOnline) return;
+  try {
+    await sbFetch('/ingredientes', {
+      method: 'POST',
+      headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify(toSB(ing)),
+    });
+  } catch(e){
+    console.warn('sbUpsertIngrediente falhou:', e);
+    setSbStatus(false);
+  }
+}
+
+// Excluir um ingrediente
+async function sbDeleteIngrediente(id){
+  if(!sbOnline) return;
+  try {
+    await sbFetch(`/ingredientes?id=eq.${id}`, { method: 'DELETE' });
+  } catch(e){
+    console.warn('sbDeleteIngrediente falhou:', e);
+    setSbStatus(false);
+  }
+}
+
 // ═══════════════════════════════════════════════
 //  DADOS
 // ═══════════════════════════════════════════════
@@ -538,7 +696,8 @@ function saveIng(){
     custoMedio:existente?existente.custoMedio:0,
   };
   if(editIngId){const idx=DB.findIndex(d=>d.id===editIngId);DB[idx]=obj;}else DB.push(obj);
-  saveAll();
+  saveAll();                          // localStorage (fallback imediato)
+  sbUpsertIngrediente(obj);           // Supabase (assíncrono, não bloqueia)
   closeModal('ing-overlay');renderIngStats();renderIngCatTabs();applyIngFilter();
 }
 function delIng(id){
@@ -546,7 +705,8 @@ function delIng(id){
   if(uso>0){alert(`Este ingrediente está em ${uso} ficha(s) técnica(s). Remova-o das fichas primeiro.`);return;}
   if(!confirm('Remover este ingrediente?'))return;
   DB=DB.filter(d=>d.id!==id);filteredDB=filteredDB.filter(d=>d.id!==id);
-  saveAll();
+  saveAll();                          // localStorage
+  sbDeleteIngrediente(id);            // Supabase
   renderIngStats();renderIngTable();
 }
 
@@ -1099,11 +1259,17 @@ function renderEstoqueStats(){
   if(nb) nb.textContent=critico>0?critico:'';
 }
 
+let _sbSyncTimer={};
 function updateMinMax(id,campo,val){
   const idx=DB.findIndex(d=>d.id===id);
   if(idx>=0) DB[idx][campo]=parseFloat(val)||0;
   saveAllDebounced();
-  renderEstoqueStats(); // atualiza contadores de crítico/baixo
+  // Supabase com debounce próprio por ingrediente (evita flood)
+  clearTimeout(_sbSyncTimer[id]);
+  _sbSyncTimer[id]=setTimeout(()=>{
+    if(idx>=0) sbUpsertIngrediente(DB[idx]);
+  }, 1200);
+  renderEstoqueStats();
 }
 
 let estSortCol='nome', estSortAsc=true;
@@ -1265,6 +1431,7 @@ function confirmarEntrada(){
   });
 
   saveAll();
+  if(idx>=0) sbUpsertIngrediente(DB[idx]); // sincroniza estoque com Supabase
   closeModal('entrada-overlay');
   renderEstoque();
   // Re-renderiza fichas se estiver na tela de fichas
@@ -1407,6 +1574,8 @@ function confirmarSaida(){
     data,forn:'',obs:motivo+(obs?' — '+obs:'')
   });
   saveAll();
+  const ingAfterSaida = DB.find(d=>d.id===saidaIngId);
+  if(ingAfterSaida) sbUpsertIngrediente(ingAfterSaida); // sincroniza estoque
   closeModal('saida-overlay');
   renderEstoque();
   showToast(`📤 Saída de ${qtd} ${ing.un} de ${ing.nome} registrada (${motivo}).`,'ok');
@@ -1447,12 +1616,29 @@ document.addEventListener('click',e=>{
 });
 
 // Carrega dados persistidos e inicia o sistema
-(function init(){
-  const hadData = loadAll();
-  // ING_CATS precisa incluir categorias personalizadas já salvas
+(async function init(){
+  // 1. Carrega dados locais imediatamente (para UI responsiva)
+  const hadLocal = loadAll();
   DB.forEach(d=>{ if(d.categoria && !ING_CATS.includes(d.categoria)) ING_CATS.push(d.categoria); });
   showScreen('dashboard');
-  if(hadData){
-    showToast('✅ Dados carregados — ' + DB.length + ' ingredientes, ' + fichas.length + ' fichas','ok');
+
+  if(hadLocal){
+    showToast('⏳ Carregando do Supabase...','ok');
+  }
+
+  // 2. Tenta buscar ingredientes do Supabase (assíncrono)
+  const sbOk = await sbLoadIngredientes();
+
+  if(sbOk){
+    // Atualiza a tela de ingredientes se estiver aberta
+    DB.forEach(d=>{ if(d.categoria && !ING_CATS.includes(d.categoria)) ING_CATS.push(d.categoria); });
+    renderIngStats && renderIngStats();
+    applyIngFilter && applyIngFilter();
+    renderDashboard && renderDashboard();
+    showToast('✅ ' + DB.length + ' ingredientes carregados do Supabase','ok');
+  } else if(!hadLocal){
+    showToast('⚠️ Supabase offline — usando dados padrão','warn');
+  } else {
+    showToast('⚠️ Supabase offline — usando dados locais salvos','warn');
   }
 })();
