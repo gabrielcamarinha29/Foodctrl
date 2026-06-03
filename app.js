@@ -163,6 +163,95 @@ const estoqueData = {
 let historicoData=[];
 let nextHistId=8;
 let estFilter='todos';
+// ═══════════════════════════════════════════════
+//  PERSISTÊNCIA — localStorage
+// ═══════════════════════════════════════════════
+const LS_KEYS = {
+  db:          'fc_db',
+  fichas:      'fc_fichas',
+  categories:  'fc_categories',
+  compras:     'fc_compras',
+  historico:   'fc_historico',
+  nextIngId:   'fc_nextIngId',
+  nextFichaId: 'fc_nextFichaId',
+  nextHistId:  'fc_nextHistId',
+};
+
+// Debounce para evitar salvar excessivamente em campos numéricos
+let _saveTimer=null;
+function saveAllDebounced(delay=800){
+  clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(saveAll,delay);
+}
+
+// Salva todos os dados no localStorage
+function saveAll(){
+  try {
+    localStorage.setItem(LS_KEYS.db,          JSON.stringify(DB));
+    localStorage.setItem(LS_KEYS.fichas,      JSON.stringify(fichas));
+    localStorage.setItem(LS_KEYS.categories,  JSON.stringify(categories));
+    localStorage.setItem(LS_KEYS.compras,     JSON.stringify(comprasData));
+    localStorage.setItem(LS_KEYS.historico,   JSON.stringify(historicoData));
+    localStorage.setItem(LS_KEYS.nextIngId,   nextIngId);
+    localStorage.setItem(LS_KEYS.nextFichaId, nextFichaId);
+    localStorage.setItem(LS_KEYS.nextHistId,  nextHistId);
+    // Feedback visual no indicador de save
+    const lbl=document.getElementById('save-label');
+    const ico=document.getElementById('save-indicator');
+    if(lbl&&ico){
+      lbl.textContent='Salvando...';
+      ico.style.borderColor='rgba(249,115,22,.4)';
+      ico.children[0].style.color='var(--accent)';
+      clearTimeout(ico._t);
+      ico._t=setTimeout(()=>{
+        lbl.textContent='Salvo';
+        ico.style.borderColor='var(--border)';
+        ico.children[0].style.color='var(--green)';
+        ico.children[0].className='ti ti-cloud-check';
+      },600);
+    }
+  } catch(e) {
+    console.warn('localStorage cheio ou indisponível:', e);
+    const lbl=document.getElementById('save-label');
+    if(lbl) lbl.textContent='Erro ao salvar';
+  }
+}
+
+// Carrega dados do localStorage — sobrescreve as variáveis iniciais se existirem dados salvos
+function loadAll(){
+  try {
+    const db2  = localStorage.getItem(LS_KEYS.db);
+    const fic2 = localStorage.getItem(LS_KEYS.fichas);
+    const cat2 = localStorage.getItem(LS_KEYS.categories);
+    const com2 = localStorage.getItem(LS_KEYS.compras);
+    const his2 = localStorage.getItem(LS_KEYS.historico);
+
+    if(db2)  { DB.length=0; JSON.parse(db2).forEach(x=>DB.push(x)); }
+    if(fic2) { fichas.length=0; JSON.parse(fic2).forEach(x=>fichas.push(x)); }
+    if(cat2) { categories.length=0; JSON.parse(cat2).forEach(x=>categories.push(x)); }
+    if(com2) { comprasData.length=0; JSON.parse(com2).forEach(x=>comprasData.push(x)); }
+    if(his2) { historicoData.length=0; JSON.parse(his2).forEach(x=>historicoData.push(x)); }
+
+    if(localStorage.getItem(LS_KEYS.nextIngId))   nextIngId   = +localStorage.getItem(LS_KEYS.nextIngId);
+    if(localStorage.getItem(LS_KEYS.nextFichaId)) nextFichaId = +localStorage.getItem(LS_KEYS.nextFichaId);
+    if(localStorage.getItem(LS_KEYS.nextHistId))  nextHistId  = +localStorage.getItem(LS_KEYS.nextHistId);
+
+    return !!(db2||fic2); // retorna true se havia dados salvos
+  } catch(e) {
+    console.warn('Erro ao carregar localStorage:', e);
+    return false;
+  }
+}
+
+// Apaga todos os dados salvos e reinicia com os padrões
+function resetStorage(){
+  if(!confirm('Apagar TODOS os dados salvos e reiniciar do zero?\n\nEsta ação não pode ser desfeita.')) return;
+  Object.values(LS_KEYS).forEach(k=>localStorage.removeItem(k));
+  showToast('Dados apagados. Recarregando...','ok');
+  setTimeout(()=>location.reload(), 1200);
+}
+
+
 let entradaIngId=null;
 
 // ═══════════════════════════════════════════════
@@ -449,6 +538,7 @@ function saveIng(){
     custoMedio:existente?existente.custoMedio:0,
   };
   if(editIngId){const idx=DB.findIndex(d=>d.id===editIngId);DB[idx]=obj;}else DB.push(obj);
+  saveAll();
   closeModal('ing-overlay');renderIngStats();renderIngCatTabs();applyIngFilter();
 }
 function delIng(id){
@@ -456,6 +546,7 @@ function delIng(id){
   if(uso>0){alert(`Este ingrediente está em ${uso} ficha(s) técnica(s). Remova-o das fichas primeiro.`);return;}
   if(!confirm('Remover este ingrediente?'))return;
   DB=DB.filter(d=>d.id!==id);filteredDB=filteredDB.filter(d=>d.id!==id);
+  saveAll();
   renderIngStats();renderIngTable();
 }
 
@@ -799,11 +890,13 @@ function saveFicha(){
     fotos:[...modalFotos],
   };
   if(editFichaId){const idx=fichas.findIndex(x=>x.id===editFichaId);fichas[idx]=obj;}else fichas.push(obj);
+  saveAll();
   closeModal('ficha-overlay');renderFichaStats();renderFichaCatTabs();renderFichas();
 }
 function delFicha(id){
   if(!confirm('Remover esta ficha técnica?'))return;
   fichas=fichas.filter(f=>f.id!==id);
+  saveAll();
   renderFichaStats();renderFichaCatTabs();renderFichas();
 }
 
@@ -818,6 +911,7 @@ function saveIngCat(){
   const sel=document.getElementById('if-cat');
   const opt=document.createElement('option');opt.value=nome;opt.textContent=nome;
   sel.appendChild(opt);
+  saveAll();
   closeModal('ing-cat-overlay');
   renderIngCatTabs();applyIngFilter();
   showToast('Categoria "'+nome+'" criada na base de ingredientes.','ok');
@@ -828,6 +922,7 @@ function saveNewCat(){
   const icon=document.getElementById('nc-icon').value.trim()||'📋';
   const id=nome.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
   categories.push({id,nome,icon});
+  saveAll();
   closeModal('cat-overlay');
   document.getElementById('ff-cat').innerHTML=categories.map(c=>`<option value="${c.id}">${c.icon} ${c.nome}</option>`).join('');
   renderFichaCatTabs();renderFichaStats();
@@ -1007,6 +1102,7 @@ function renderEstoqueStats(){
 function updateMinMax(id,campo,val){
   const idx=DB.findIndex(d=>d.id===id);
   if(idx>=0) DB[idx][campo]=parseFloat(val)||0;
+  saveAllDebounced();
   renderEstoqueStats(); // atualiza contadores de crítico/baixo
 }
 
@@ -1168,6 +1264,7 @@ function confirmarEntrada(){
     data,forn,obs
   });
 
+  saveAll();
   closeModal('entrada-overlay');
   renderEstoque();
   // Re-renderiza fichas se estiver na tela de fichas
@@ -1198,7 +1295,7 @@ function gerarListaCompras(){
       adicionados++;
     }
   });
-  if(adicionados>0) showToast(`${adicionados} item${adicionados>1?'s':''} crítico${adicionados>1?'s':''} adicionado${adicionados>1?'s':''} à lista de compras.`,'ok');
+  if(adicionados>0){ saveAll(); showToast(`${adicionados} item${adicionados>1?'s':''} crítico${adicionados>1?'s':''} adicionado${adicionados>1?'s':''} à lista de compras.`,'ok'); }
   renderCompras();
 }
 
@@ -1237,7 +1334,7 @@ function renderCompras(){
   document.getElementById('compra-gasto').textContent=fmt(gasto);
 }
 
-function toggleCompra(idx,val){comprasData[idx].done=val;renderCompras();}
+function toggleCompra(idx,val){comprasData[idx].done=val;saveAll();renderCompras();}
 
 function entradaPorCompra(idx){
   // Abre modal de entrada já preenchido com os dados da compra
@@ -1309,6 +1406,7 @@ function confirmarSaida(){
     qtd,custoUnit,total:parseFloat((qtd*custoUnit).toFixed(2)),
     data,forn:'',obs:motivo+(obs?' — '+obs:'')
   });
+  saveAll();
   closeModal('saida-overlay');
   renderEstoque();
   showToast(`📤 Saída de ${qtd} ${ing.un} de ${ing.nome} registrada (${motivo}).`,'ok');
@@ -1347,4 +1445,14 @@ function showToast(msg,type='ok'){
 document.addEventListener('click',e=>{
   if(!e.target.closest('.ing-dd-wrap')) document.getElementById('ff-ing-dd').style.display='none';
 });
-showScreen('dashboard');
+
+// Carrega dados persistidos e inicia o sistema
+(function init(){
+  const hadData = loadAll();
+  // ING_CATS precisa incluir categorias personalizadas já salvas
+  DB.forEach(d=>{ if(d.categoria && !ING_CATS.includes(d.categoria)) ING_CATS.push(d.categoria); });
+  showScreen('dashboard');
+  if(hadData){
+    showToast('✅ Dados carregados — ' + DB.length + ' ingredientes, ' + fichas.length + ' fichas','ok');
+  }
+})();
